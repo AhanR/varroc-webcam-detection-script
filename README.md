@@ -8,6 +8,12 @@ cd varroc-webcam-detection-script
 pip install -r requirements.txt
 ```
 
+Running the GUI:
+---
+```
+python full-app.py
+```
+
 Running the script:
 ---
 
