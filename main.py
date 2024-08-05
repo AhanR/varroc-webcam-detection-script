@@ -29,9 +29,9 @@ def list_cameras():
     return arr
 
 cam_list = list_cameras()
-if cam_list == []:
-    print("No cameras found, exiting the program.")
-    exit()
+# if cam_list == []:
+#     print("No cameras found, exiting the program.")
+#     exit()
 camera_index = int(input("Select which video source you want to use from the list below:\n"+"\n".join(map(lambda x: 'camera ('+str(x) + ')', cam_list))+ "\nChoose and option {"+"/".join(map(lambda x: str(x), cam_list))+"}:"))
 if camera_index not in cam_list:
     print(f"Could not find camera number f{camera_index} in list. Enter a number from the list:", cam_list)
@@ -40,7 +40,7 @@ path = input("Enter file path for logs:")
 
 model = YOLOv10.from_pretrained(f'jameslahm/yolov10{model_size}')
 print("Key: object dictionary")
-print(model.names)
+print(model.names.keys())
 print("Press ESC key to stop program")
 print("{[x1, y1, x2, y2], Class_ID, Confidence_Score}")
 

@@ -15,7 +15,11 @@ load_dotenv("config.env")
 
 CAN_FRAME_ID = 0x0A
 SHOW_BBOX = True if os.getenv("SHOW_BOXES") == "True" else False
-print("Show boxes? : ", SHOW_BBOX)
+CONFIDENCE_CUTOFF = float(os.getenv("CONFIDENCE_FILTER"))
+COORDS_PERCENTAGE = True if os.getenv("COORDS_PERCENTAGE") == "True" else False
+FILTER_OBJECTS = True if os.getenv("FILTER_OBJECTS") == "True" else False
+
+FILTER_OBJECT_IDS = [0,1,2,3,5,7,9,11,12,14,15,16,17,18,19,20,21,22,23,67,79]
 
 # Function to detect objects using YOLOv10 and annotate the frame
 def detect_objects(frame, model):
@@ -29,9 +33,20 @@ def detect_objects(frame, model):
 
         for box, score, cls in zip(boxes, scores, classes):
             detected_objects.append((box, int(cls), score))
-            print(f"{{'box': {box}, 'class': {int(cls)}, 'score': {score:.2f}}}")
 
-            if SHOW_BBOX:
+            # send can data from here
+            print(f"Timestamp: {time.time()} {{'box': {box}, 'class': {int(cls)}, 'score': {score:.2f}}}")
+
+            # Filter for
+            # Vehicle
+            # Human
+            # Animal
+            # Sign boards
+            # pen
+            # toothbrush
+            # mobile
+
+            if SHOW_BBOX and score > CONFIDENCE_CUTOFF and int(cls) in FILTER_OBJECT_IDS:
                 # Draw bounding box and class ID on the frame
                 x1, y1, x2, y2 = map(int, box)
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
@@ -86,10 +101,16 @@ def start_video(video_path, stop_event, frame_lock, shared_frame, video_label, m
     return display_thread, process_thread
 
 def main(video_path):
+
+    global FILTER_OBJECT_IDS
+
     model = YOLOv10.from_pretrained(os.getenv("MODEL"))
     stop_event = threading.Event()
     frame_lock = threading.Lock()
     shared_frame = [None]
+
+    if not FILTER_OBJECTS:
+        FILTER_OBJECT_IDS = list(model.names.keys())
 
     root = tk.Tk()
     root.title("YOLOv10 Video Processing")
