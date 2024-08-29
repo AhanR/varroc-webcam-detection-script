@@ -14,12 +14,15 @@ logging.getLogger("ultralytics").setLevel(logging.CRITICAL)
 load_dotenv("config.env")
 
 CAN_FRAME_ID = 0x0A
-SHOW_BBOX = True if os.getenv("SHOW_BOXES") == "True" else False
+# SHOW_BBOX = True if os.getenv("SHOW_BOXES") == "True" else False
+SHOW_BBOX = True
 CONFIDENCE_CUTOFF = float(os.getenv("CONFIDENCE_FILTER"))
 COORDS_PERCENTAGE = True if os.getenv("COORDS_PERCENTAGE") == "True" else False
 FILTER_OBJECTS = True if os.getenv("FILTER_OBJECTS") == "True" else False
 CANVAS_WIDTH = int(os.getenv("CANVAS_WIDTH"))
 CANVAS_HEIGHT = int(os.getenv("CANVAS_HEIGHT"))
+RATIO = 1
+PADDING = [0,0] # padding x = 0, padding y = 0
 
 FILTER_OBJECT_IDS = [0,1,2,3,5,7,9,11,12,14,15,16,17,18,19,20,21,22,23,67,79]
 
@@ -37,8 +40,8 @@ def detect_objects(frame, model):
     
         # Initialize ImageDraw object
         draw = ImageDraw.Draw(canvas)
-        
-
+        # print(">>padding", PADDING)
+        # draw.rectangle([(PADDING[0] + 0*RATIO, PADDING[1] + 0*RATIO), (PADDING[0] + 1280*RATIO, PADDING[1] + 720*RATIO)], fill='blue')
 
         for box, score, cls in zip(boxes, scores, classes):
 
@@ -46,10 +49,11 @@ def detect_objects(frame, model):
             x1, y1, x2, y2 = map(int, box)
             
             # Draw a black rectangle on the canvas
-            draw.rectangle([(x1,y1),(x2,y2)], fill='black')
+            print(">>>bbox", [(PADDING[0] + x1*RATIO, PADDING[1] + y1*RATIO), (PADDING[0] + x2*RATIO, PADDING[1] + y2*RATIO)])
+            draw.rectangle([(PADDING[0] + x1*RATIO, PADDING[1] + y1*RATIO), (PADDING[0] + x2*RATIO, PADDING[1] + y2*RATIO)], fill='black')
 
             # send can data from here
-            print(f"Timestamp: {time.time()} {{'box': {box}, 'class': {int(cls)}, 'score': {score:.2f}}}")
+            # print(f"Timestamp: {time.time()} {{'box': {box}, 'class': {int(cls)}, 'score': {score:.2f}}}")
 
             # Filter for
             # Vehicle
@@ -72,7 +76,13 @@ def detect_objects(frame, model):
 
 # Thread for displaying video
 def display_video(video_source, stop_event, frame_lock, shared_frame, label, label_2):
+    global RATIO, PADDING
     cap = cv2.VideoCapture(video_source)
+
+    RATIO = min(CANVAS_WIDTH/cap.get(cv2.CAP_PROP_FRAME_WIDTH), CANVAS_HEIGHT/cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    PADDING = [(CANVAS_WIDTH - RATIO*cap.get(cv2.CAP_PROP_FRAME_WIDTH))//2, (CANVAS_HEIGHT - RATIO*cap.get(cv2.CAP_PROP_FRAME_HEIGHT))//2]
+    print(">>>sizes", cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
     while not stop_event.is_set():
         ret, frame = cap.read()
         if not ret:
@@ -147,6 +157,7 @@ def main(video_path):
 
     independent_frame = tk.Toplevel(root)
     independent_frame.title("Intermediate window")
+    independent_frame.geometry(f"{CANVAS_WIDTH}x{CANVAS_HEIGHT}")
 
     intermediate_lablel = tk.Label(independent_frame)
     intermediate_lablel.pack()
